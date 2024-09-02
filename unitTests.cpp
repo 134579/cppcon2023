@@ -1,7 +1,9 @@
 #include "Fifo1.hpp"
 #include "Fifo2.hpp"
 #include "Fifo3.hpp"
+#include "Fifo3a.hpp"
 #include "Fifo4.hpp"
+#include "Fifo4b.hpp"
 #include "Fifo5.hpp"
 #include "Fifo5a.hpp"
 #include "Fifo5b.hpp"
@@ -41,7 +43,9 @@ using FifoTypes = ::testing::Types<
     Fifo1<test_type>,
     Fifo2<test_type>,
     Fifo3<test_type>,
+    Fifo3a<test_type>,
     Fifo4<test_type>,
+    Fifo4b<test_type>,
     Fifo5<test_type>,
     Fifo5b<test_type>
     >;
@@ -118,17 +122,20 @@ TYPED_TEST(FifoTest, popFullFifo) {
     EXPECT_FALSE(this->fifo.pop(value));
 
     for (auto i = 0u; i < this->fifo.capacity(); ++i) {
-        this->fifo.push(42 + i);
+        ASSERT_EQ(i, this->fifo.size());
+        ASSERT_TRUE(this->fifo.push(42 + i));
     }
+    EXPECT_EQ(this->fifo.capacity(), this->fifo.size());
     EXPECT_TRUE(this->fifo.full());
 
     for (auto i = 0u; i < this->fifo.capacity()*4; ++i) {
         EXPECT_TRUE(this->fifo.pop(value));
         EXPECT_EQ(42 + i, value);
-    EXPECT_FALSE(this->fifo.full());
+        EXPECT_FALSE(this->fifo.full());
 
         EXPECT_TRUE(this->fifo.push(42 + 4 + i));
         EXPECT_TRUE(this->fifo.full());
+        EXPECT_EQ(this->fifo.capacity(), this->fifo.size());
     }
 }
 

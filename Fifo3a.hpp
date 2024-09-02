@@ -6,22 +6,49 @@
 #include <new>
 
 
-/// Threadsafe, efficient circular FIFO with constrained and cached cursors
+/**
+ * Threadsafe, efficient circular FIFO with constrained cursors
+ *
+ * This Fifo is useful when you need to constrain the cursor ranges. For
+ * example say if the sizeof(CursorType) is 8 or 15. The cursors may
+ * take on any value up to the fifo's capacity + 1. Furthermore, there
+ * are no calculations where an intermediate cursor value is larger then
+ * this number. And, finally, the cursors are never negative.
+ *
+ * The problem that must be resolved is how to distinguish an empty fifo
+ * from a full one and still meet the above constraints. First, define
+ * an empty fifo as when the pushCursor and popCursor are equal. We
+ * cannot define a full fifo as pushCursor == popCursor + capacity.
+ * Firstly, the intermediate value popCursor + capacity can overflow if
+ * a signed cursor is used and if the cursors are constrained to
+ * [0..capacity) there is no distiction between the full definition and
+ * the empty definition.
+ *
+ * To resolve this we introduce the idea of a sentinal element by
+ * allocating one more element than the capacity of the fifo and define
+ * a full fifo as when the cursors are "one apart". That is,
+ *
+ * @code
+ *    | pushCursor < popCursor:  pushCursor == popCursor - 1
+ *    | popCursor < pushCursor:  popCursor == pushCursor - capacity
+ *    |                   else:  false
+ * @endcode
+ */
 template<typename T, typename Alloc = std::allocator<T>>
-class Fifo4b : private Alloc
+class Fifo3a : private Alloc
 {
 public:
     using value_type = T;
     using allocator_traits = std::allocator_traits<Alloc>;
     using size_type = typename allocator_traits::size_type;
 
-    explicit Fifo4b(size_type capacity, Alloc const& alloc = Alloc{})
+    explicit Fifo3a(size_type capacity, Alloc const& alloc = Alloc{})
         : Alloc{alloc}
         , capacity_{capacity}
         , ring_{allocator_traits::allocate(*this, capacity + 1)}
     {}
 
-    ~Fifo4b() {
+    ~Fifo3a() {
         // TODO fix shouldn't matter for benchmark since it waits until
         // the fifo is empty and only need if destructors have side
         // effects.
@@ -65,13 +92,10 @@ public:
     /// @return `true` if the operation is successful; `false` if fifo is full.
     auto push(T const& value) {
         auto pushCursor = pushCursor_.load(std::memory_order_relaxed);
-        if (full(pushCursor, popCursorCached_)) {
-            popCursorCached_ = popCursor_.load(std::memory_order_acquire);
-            if (full(pushCursor, popCursorCached_)) {
-                return false;
-            }
+        auto popCursor = popCursor_.load(std::memory_order_acquire);
+        if (full(pushCursor, popCursor)) {
+            return false;
         }
-
         new (&ring_[pushCursor]) T(value);
         if (pushCursor == capacity_) {
             pushCursor_.store(0, std::memory_order_release);
@@ -84,14 +108,11 @@ public:
     /// Pop one object from the fifo.
     /// @return `true` if the pop operation is successful; `false` if fifo is empty.
     auto pop(T& value) {
+        auto pushCursor = pushCursor_.load(std::memory_order_acquire);
         auto popCursor = popCursor_.load(std::memory_order_relaxed);
-        if (empty(pushCursorCached_, popCursor)) {
-            pushCursorCached_ = pushCursor_.load(std::memory_order_acquire);
-            if (empty(pushCursorCached_, popCursor)) {
-                return false;
-            }
+        if (empty(pushCursor, popCursor)) {
+            return false;
         }
-
         value = ring_[popCursor];
         ring_[popCursor].~T();
         if (popCursor == capacity_) {
@@ -129,15 +150,9 @@ private:
     /// Loaded and stored by the push thread; loaded by the pop thread
     alignas(hardware_destructive_interference_size) CursorType pushCursor_;
 
-    /// Exclusive to the push thread
-    alignas(hardware_destructive_interference_size) size_type popCursorCached_{};
-
     /// Loaded and stored by the pop thread; loaded by the push thread
     alignas(hardware_destructive_interference_size) CursorType popCursor_;
 
-    /// Exclusive to the pop thread
-    alignas(hardware_destructive_interference_size) size_type pushCursorCached_{};
-
     // Padding to avoid false sharing with adjacent objects
-    char padding_[hardware_destructive_interference_size - sizeof(size_type)];
+    char padding_[hardware_destructive_interference_size - sizeof(CursorType)];
 };

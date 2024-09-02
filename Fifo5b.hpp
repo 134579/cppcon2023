@@ -28,6 +28,10 @@ public:
         assert((capacity & mask_) == 0);
     }
 
+    // For consistency with the other fifos
+    Fifo5b(Fifo5b const&) = delete;
+    Fifo5b(Fifo5b&&) = delete;
+
     ~Fifo5b() {
         allocator_traits::deallocate(*this, ring_, capacity());
     }
