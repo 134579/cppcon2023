@@ -6,7 +6,35 @@
 #include <new>
 
 
-/// Threadsafe, efficient circular FIFO with constrained and cached cursors
+/**
+ * Fifo3a with cached cursors; a threadsafe, efficient circular FIFO
+ * with constrained cursors.
+ *
+ * This Fifo is useful when you need to constrain the cursor ranges. For
+ * example say if the sizeof(CursorType) is 8 or 16. The cursors may
+ * take on any value up to the fifo's capacity + 1. Furthermore, there
+ * are no calculations where an intermediate cursor value is larger then
+ * this number. And, finally, the cursors are never negative.
+ *
+ * The problem that must be resolved is how to distinguish an empty fifo
+ * from a full one and still meet the above constraints. First, define
+ * an empty fifo as when the pushCursor and popCursor are equal. We
+ * cannot define a full fifo as pushCursor == popCursor + capacity as we
+ * did with most of the others. Firstly, the intermediate value
+ * popCursor + capacity can overflow if a signed cursor is used and if
+ * the cursors are constrained to [0..capacity) there is no distiction
+ * between the full definition and the empty definition.
+ *
+ * To resolve this we introduce the idea of a sentinal element by
+ * allocating one more element than the capacity of the fifo and define
+ * a full fifo as when the cursors are "one apart". That is,
+ *
+ * @code
+ *    | pushCursor < popCursor:  pushCursor == popCursor - 1
+ *    | popCursor < pushCursor:  popCursor == pushCursor - capacity
+ *    |                   else:  false
+ * @endcode
+ */
 template<typename T, typename Alloc = std::allocator<T>>
 class Fifo4b : private Alloc
 {

@@ -1,5 +1,6 @@
 #include "Fifo4.hpp"
 #include "Fifo4a.hpp"
+#include "Fifo4b.hpp"
 #include "Fifo5.hpp"
 #include "Fifo5a.hpp"
 #include "Fifo5b.hpp"
@@ -96,6 +97,7 @@ void BM_Fifo(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_Fifo, Fifo4);
 BENCHMARK_TEMPLATE(BM_Fifo, Fifo4a);
+BENCHMARK_TEMPLATE(BM_Fifo, Fifo4b);
 BENCHMARK_TEMPLATE(BM_Fifo, Fifo5);
 BENCHMARK_TEMPLATE(BM_Fifo, Fifo5a);
 BENCHMARK_TEMPLATE(BM_Fifo, Fifo5b);

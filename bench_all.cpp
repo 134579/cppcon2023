@@ -1,5 +1,6 @@
 #include "Fifo2.hpp"
 #include "Fifo3.hpp"
+#include "Fifo3a.hpp"
 #include "Fifo4.hpp"
 #include "Fifo4a.hpp"
 #include "Fifo4b.hpp"
@@ -31,6 +32,7 @@ void once(long iters, int cpu1, int cpu2) {
         // Bench<Mutex<ValueT>>{}(iters, cpu1, cpu2) <<
 
         Bench<Fifo3<ValueT>>{}(iters, cpu1, cpu2) << "," << std::flush <<
+        Bench<Fifo3a<ValueT>>{}(iters, cpu1, cpu2) << "," << std::flush <<
         Bench<Fifo4<ValueT>>{}(iters, cpu1, cpu2) << "," << std::flush <<
         Bench<Fifo4a<ValueT>>{}(iters, cpu1, cpu2) << "," << std::flush <<
         Bench<Fifo4b<ValueT>>{}(iters, cpu1, cpu2) << "," << std::flush <<
@@ -54,7 +56,7 @@ int main(int argc, char* argv[]) {
 
     using value_type = std::int64_t;
 
-    std::cout << "Fifo3,Fifo4,Fifo4a,Fifo4b,Fifo5,Fifo5a,Fifo5b,rigtorp,boost_spsc_queue" << std::endl;
+    std::cout << "Fifo3,Fifo3a,Fifo4,Fifo4a,Fifo4b,Fifo5,Fifo5a,Fifo5b,rigtorp,boost_spsc_queue" << std::endl;
     // std::cout << "Fifo2,Mutex\n";
     for (auto rep = 0; rep < reps; ++rep) {
         once<value_type>(iters, cpu1, cpu2);
