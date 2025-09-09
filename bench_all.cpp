@@ -28,9 +28,8 @@ using boost_spsc_queue = boost::lockfree::spsc_queue<T, boost::lockfree::fixed_s
 template<typename ValueT>
 void once(long iters, int cpu1, int cpu2) {
     std::cout <<
-        // Bench<Fifo2<ValueT>>{}(iters, cpu1, cpu2) << "," <<
-        // Bench<Mutex<ValueT>>{}(iters, cpu1, cpu2) <<
-
+        Bench<Fifo2<ValueT>>{}(iters, cpu1, cpu2) << "," <<
+        Bench<Mutex<ValueT>>{}(iters, cpu1, cpu2) << "," <<
         Bench<Fifo3<ValueT>>{}(iters, cpu1, cpu2) << "," << std::flush <<
         Bench<Fifo3a<ValueT>>{}(iters, cpu1, cpu2) << "," << std::flush <<
         Bench<Fifo4<ValueT>>{}(iters, cpu1, cpu2) << "," << std::flush <<
